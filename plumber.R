@@ -1,6 +1,10 @@
-# Tomorrow, June 18th: Get list working for large numbers 
-# Tomorrow, June 18th: Make linear model
-# Tomorrow, June 18th: Make quadratic model if I can
+
+# Tomorrow, June 18th: Make linear model - DONE
+# Tomorrow, June 19th: Return the coefficients of the intercept and the slope
+# Tomorrow, June 19th: Make quadratic model
+# Tomorrow, June 19th: Get list working for large numbers 
+# Tomorrow, June 19th: Implement Caching
+# Tomorrow, June 19th: https://chatgpt.com/c/6852b849-c900-800c-a840-e87fe5e0ccd3
 
 # api.R
 
@@ -98,17 +102,22 @@ function(seqID){
   index_values <- data[[1]]
   nums_values <- data[[2]]
   
-  index <- index_values[1:20]
-  nums <- nums_values[1:20]
+  index <- index_values[1:100]
+  nums <- nums_values[1:100]
   
   index_vector <- as.vector(index)
   nums_vector <- as.vector(nums)
 
   df <- data.frame(x = index_vector, y = nums_vector)
+  linear_model <- lm(y ~ x, data=df)
+  df$linear_fit <- predict(linear_model)
 
-  (print(ggplot(df, aes(x = x, y = y)) +
+
+  print(ggplot(df, aes(x = x, y = y)) +
     geom_line() +
-    geom_point()))
+    geom_point() + 
+  geom_line(aes(y=linear_fit), color="red"))
+
   print("picture made!")
 }
 
