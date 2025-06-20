@@ -85,11 +85,21 @@ plot_of_numbers <- function(){
 }
 
 
+# Problem is that seqID is being interpretted as a number and not a string
+model_cache <- new.env()
+model_cache[["000045"]] <- TRUE
+
 #* Print a picture of the plot of a given sequence
 #* param seqID:str The sequence ID
 #* @get /getPic
 #* @serializer png
 function(seqID){
+
+  if(exists(seqID, envir=model_cache)){
+    print("WORKING!")
+    # print("dataframe retrieved from cache")
+    # print(ggplot(model_cache[[seqID]], aes(x=x, y=y)))
+  }
 
   # url <- "https://oeis.org/A000045/b000045.txt"
 
@@ -109,16 +119,20 @@ function(seqID){
   nums_vector <- as.vector(nums)
 
   df <- data.frame(x = index_vector, y = nums_vector)
+
   linear_model <- lm(y ~ x, data=df)
   df$linear_fit <- predict(linear_model)
-
-
+  
   print(ggplot(df, aes(x = x, y = y)) +
     geom_line() +
     geom_point() + 
-  geom_line(aes(y=linear_fit), color="red"))
+    geom_line(aes(y=linear_fit), color="red"))
 
   print("picture made!")
+
+  model_cache[[seqID]] <- df
+  
+  print("dataframe added to cache")
 }
 
 plot_of_numbers <- function(){
