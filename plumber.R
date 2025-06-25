@@ -89,6 +89,20 @@ plot_of_numbers <- function(){
 model_cache <- new.env()
 model_cache[["000045"]] <- TRUE
 
+print(model_cache)
+
+#* Print a picture of the plot of a given sequence
+#* param seqID:str The sequence ID
+#* @get /getLinearPic
+#* @serializer png
+function(seqID){
+  if(exists(seqID, env=model_cache)){
+    print("model_cache contains")
+    print(seqID)
+  } else {
+
+  }
+}
 #* Print a picture of the plot of a given sequence
 #* param seqID:str The sequence ID
 #* @get /getPic
@@ -97,42 +111,48 @@ function(seqID){
 
   if(exists(seqID, envir=model_cache)){
     print("WORKING!")
+    print(model_cache)
+    print(ls(model_cache))
+    print(ggplot(model_cache[[seqID]], aes(x=x, y=y)) 
+    + geom_line() 
+    + geom_point())
     # print("dataframe retrieved from cache")
     # print(ggplot(model_cache[[seqID]], aes(x=x, y=y)))
   }
+  else {
+    # url <- "https://oeis.org/A000045/b000045.txt"
 
-  # url <- "https://oeis.org/A000045/b000045.txt"
+    A_seqID <- paste0("A", seqID)
+    b_seqID <- paste0("b", seqID)
+    url <- paste0("https://oeis.org/", A_seqID, "/", b_seqID, ".txt")
+    
+    data <- read.table(url, colClasses = c("integer", "numeric"))
 
-  A_seqID <- paste0("A", seqID)
-  b_seqID <- paste0("b", seqID)
-  url <- paste0("https://oeis.org/", A_seqID, "/", b_seqID, ".txt")
-  
-  data <- read.table(url, colClasses = c("integer", "numeric"))
+    index_values <- data[[1]]
+    nums_values <- data[[2]]
+    
+    index <- index_values[1:100]
+    nums <- nums_values[1:100]
+    
+    index_vector <- as.vector(index)
+    nums_vector <- as.vector(nums)
 
-  index_values <- data[[1]]
-  nums_values <- data[[2]]
-  
-  index <- index_values[1:100]
-  nums <- nums_values[1:100]
-  
-  index_vector <- as.vector(index)
-  nums_vector <- as.vector(nums)
+    df <- data.frame(x = index_vector, y = nums_vector)
 
-  df <- data.frame(x = index_vector, y = nums_vector)
+    linear_model <- lm(y ~ x, data=df)
+    df$linear_fit <- predict(linear_model) 
+    model_cache[[seqID]] <- df
+    print((seqID))
+    
+    print(ggplot(df, aes(x = x, y = y)) +
+      geom_line() +
+      geom_point() + 
+      geom_line(aes(y=linear_fit), color="red"))
 
-  linear_model <- lm(y ~ x, data=df)
-  df$linear_fit <- predict(linear_model)
-  
-  print(ggplot(df, aes(x = x, y = y)) +
-    geom_line() +
-    geom_point() + 
-    geom_line(aes(y=linear_fit), color="red"))
+    print("picture made!")
+    print("dataframe added to cache!")
 
-  print("picture made!")
-
-  model_cache[[seqID]] <- df
-  
-  print("dataframe added to cache")
+  }
 }
 
 plot_of_numbers <- function(){
