@@ -1,3 +1,10 @@
 "Connections"
 library(gmp)
 read.table
+
+Things to prove for myself later:
+Derivation of linear fit
+derivation of lienar fit from linear algebra
+derivation of linear fit for quadratic
+
+derivation of exponential fit (did this on paper already)
