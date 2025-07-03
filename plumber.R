@@ -1,9 +1,21 @@
+#To do: 
+# Return formulas
+# Implement different kinds of analysis
 
-# Tomorrow, June 18th: Make linear model - DONE
-# Tomorrow, June 19th: Return the coefficients of the intercept and the slope
-# Tomorrow, June 19th: Make quadratic model
-# Tomorrow, June 19th: Get list working for large numbers 
-# Tomorrow, June 19th: Implement Caching
+
+
+
+
+
+
+# Fun note: the cache wasn't working and each function was caching 
+#the sequence over and over again 
+# - I asked chatGPT what the problem was and it recommended I
+# Implement a "lock file" (???) to "ensure single creation" - 
+# the actual problem was I was doing 
+#if(!file.exists(paste0("./cache", seqID))) instead of 
+# if(!file.exists(paste0("./cache/", seqID)))
+
 
 # api.R
 source("algorithms.R")
@@ -22,6 +34,126 @@ cors <- function(res) {
   plumber::forward()
 }
 
+
+#* Print a picture of the plot of a given sequence
+#* param seqID:str The sequence ID
+#* @get /getSeqPNG
+#* @serializer png list(width = 800, height = 500)
+function(seqID){
+  if(!file.exists(paste0("./cache/", seqID))){
+    create_df_and_cache(seqID)
+  }
+
+
+  result <- readRDS(paste0("./cache/", seqID))
+  p <- draw_graph(seqID)
+  print(exp_coeffs(seqID))
+  print(p)
+
+}
+
+
+#* Print a picture of the plot of a given sequence with its linear fit
+#* param seqID:str The sequence ID
+#* @get /getSeqLinearModelPNG
+#* @serializer png
+function(seqID){
+  if(!file.exists(paste0("./cache/", seqID))){
+    print("df created in /getSeqLinearModelPNG")
+    print(seqID)
+    create_df_and_cache(seqID)
+  }
+
+  p <- draw_graph_with_linear_fit(seqID)
+  print(p)
+}
+
+
+#* Print a picture of the plot of a given sequence with a quadratic fit
+#* param seqID:str The sequence ID
+#* @get /getSeqQuadraticModelPNG
+#* @serializer png
+function(seqID){
+  if(!file.exists(paste0("./cache/", seqID))){
+    create_df_and_cache(seqID)
+    print("df created in /setQuadraticModelPNG")
+    print(seqID)
+  }
+
+  p <- draw_graph_with_quadratic_fit(seqID)
+  print(p)
+}
+
+
+#* Print a picture of the plot of a given sequence with an exponential fit
+#* param seqID:str The sequence ID
+#* @get /getSeqExpModelPNG
+#* @serializer png
+function(seqID){
+  if(!file.exists(paste0("./cache/", seqID))){
+    create_df_and_cache(seqID)
+    print("df created in /setQuadraticModelPNG")
+    print(seqID)
+  }
+
+  p <- draw_graph_with_exp_fit(seqID)
+  print(p)
+}
+
+#* Return a json object with m, b the slope and y-intercept of the linear fit
+#* param seqID:str The sequence ID
+#* @get /getLinearCoeffs
+function(seqID){
+  if(!file.exists(paste0("./cache", seqID))){
+    create_df_and_cache(seqID)
+    print("df created in /getLinearCoeffs")
+  }
+
+  return(linear_coeffs(seqID))
+}
+
+
+#* Return an object with a, b, c, ax^2+bx+c is the best fit quadratic for SeqID
+#* param seqID:str The sequence ID
+#* @get /getQuadraticCoeffs
+function(seqID){
+  if(!file.exists(paste0("./cache", seqID))){
+    create_df_and_cache(seqID)
+    print("df created in /getQuadraticCoeffs")
+  }
+
+  return(quadratic_coeffs(seqID))
+}
+
+#* Return an object with a, b, c, ax^2+bx+c is the best fit quadratic for SeqID
+#* param seqID:str The sequence ID
+#* @get /getExponentialCoeffs
+function(seqID){
+  if(!file.exists(paste0("./cache", seqID))){
+    create_df_and_cache(seqID)
+    print("df created in /getExponentialCoeffs")
+  }
+
+  return(exp_coeffs(seqID))
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #* Return Hello World
 #* @get /hello-world
 function(){
@@ -34,6 +166,7 @@ function(){
 function(msg="") {
   list(message = paste("You said:", msg))
 }
+
 
 #* Get the elements of a sequence
 #* param seqID:str The sequence ID.
@@ -65,76 +198,19 @@ function(seqID){
 #* @serializer text
 function(seqID){
   url <- "https://oeis.org/A000045/b000045.txt"
-  
+
   data <- read.table(url, colClasses = c("integer", "character"))
 
   index_values <- data[[1]]
   nums_values <- data[[2]]
-  
+
   index <- index_values[1:100]
   nums <- nums_values[1:100]
-  
+
   index_vector <- as.vector(index)
   num_vector <- as.vector(nums)
-  
+
   print(index_vector)
   print(num_vector)
   return(num_vector[29])
-}
-
-plot_of_numbers <- function(){
-
-}
-
-
-# Problem is that seqID is being interpretted as a number and not a string
-model_cache <- new.env()
-
-#* Print a picture of the plot of a given sequence
-#* param seqID:str The sequence ID
-#* @get /getSeqPNG
-#* @serializer png list(width = 800, height = 500)
-function(seqID){
-  if(!exists(seqID, envir=model_cache)){
-      create_df_and_cache(seqID, model_cache)
-  }
-
-  p <- draw_graph(seqID, model_cache)
-  print(p)
-
-}
-
-
-#* Print a picture of the plot of a given sequence with its linear fit
-#* param seqID:str The sequence ID
-#* @get /getSeqLinearModelPNG
-#* @serializer png
-function(seqID){
-  if(!exists(seqID, env=model_cache)){
-    create_df_and_cache(seqID, model_cache)
-  }
-
-  p <- draw_graph_with_linear_fit(seqID, model_cache)
-  print(p)
-}
-
-
-#* Print a picture of the plot of a given sequence with a quadratic fit
-#* param seqID:str The sequence ID
-#* @get /getSeqQuadraticModelPNG
-#* @serializer png
-function(seqID){
-  if(!exists(seqID, env=model_cache)){
-    create_df_and_cache(seqID, model_cache)
-  }
-
-  p <- draw_graph_with_quadratic_fit(seqID, model_cache)
-  print(p)
-}
-
-#* Print a picture of the plot of a given sequence with a quadratic fit
-#* param seqID:str The sequence ID
-#* @get /getLinearCoeffs
-function(seqID){
-  
 }
