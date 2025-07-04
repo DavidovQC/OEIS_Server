@@ -1,4 +1,5 @@
 library(ggplot2)
+library(pracma)
 
 
 create_df_and_cache <- function(seqID){
@@ -15,12 +16,35 @@ cache_result <- function(seqID, result){
 
 
 analyze <- function(df){
+   
+    
+    # linear fit
     linear_model <- lm(value~index, data=df)
     df$linear_fit <- predict(linear_model)
     
+
+    # quadratic fit
     quadratic_model <- lm(value~index + I(index^2), data = df)
     df$quadratic_fit <- predict(quadratic_model)
 
+    #rational fit
+
+    rational_poly <- rationalfit(df$index, df$value, 3, 3)
+    rational_func <- function(x) {
+        polyval(rational_poly$p1, x) / polyval(rational_poly$p2, x)
+    }
+
+    imag_parts <- Im(rational_func(df$index))
+    max_imag <- max(abs(imag_parts))
+    if (max_imag < 1e-10) {
+        df$rational_fit <- Re(rational_func(df$index))
+    } else {
+        warning("Non-negligible imaginary components detected in fit.")
+    }
+
+    # exponential fit - choose only values which are > 0.
+    # Notes: For values that oscilate from positive to negative
+    # this will show as a "spiked" exponential - see A000009
     df_pos <- df[df$value > 0,  ]
     exp_model <- lm(log(value) ~ index, data=df_pos)
 
@@ -29,6 +53,42 @@ analyze <- function(df){
     a <- exp(log_a)
     df$exp_fit <- 0
     df$exp_fit[df$value > 0] <- a * exp(b * df$index[df$value > 0])
+
+    #recurrence fit
+    k <- 2
+    E <- embed(df$value, k + 1)
+
+    coeffs_rec <- solve(E[1:2, 2:3], E[1:2, 1])
+    names(coeffs_rec) <- c("c1","c2")
+    print(coeffs_rec)
+    
+    #returns n-1th value
+    recurrence_function_pre <- function(n){
+        values <- df$value[1:k]
+        if(n <= k){
+            return(values[n])
+        }
+
+        for(i in (k+1):n){
+            val = sum(values[(i-k):(i-1)] * rev(coeffs_rec))
+            values <- c(values, val)
+        }
+
+        return(values[n])
+
+    }
+
+    #true recurrence function
+    recurrence_function <- function(n){
+        recurrence_function_pre(n+1)
+    }
+
+    df$recurrence_fit <- recurrence_function(df$index)
+
+   
+
+
+
     
 
     return(
@@ -36,7 +96,8 @@ analyze <- function(df){
             df = df,  
             linear_model = linear_model, 
             quadratic_model = quadratic_model, 
-            exp_model = exp_model
+            exp_model = exp_model,
+            rational_model = rational_poly
         )
     )
 }
@@ -81,6 +142,27 @@ draw_graph_with_exp_fit <- function(seqID){
     
     )
 }
+
+draw_graph_with_rational_fit <- function(seqID){
+    df <- readRDS(paste0("./cache/", seqID))$df
+    return(
+        ggplot(df, aes(x=index, y=value))
+        +geom_point()
+        +geom_line()
+        +geom_line(aes(y=rational_fit), color='red')
+    )
+}
+
+draw_graph_with_recurrence_fit <- function(seqID){
+    df <- readRDS(paste0("./cache/", seqID))$df
+    return(
+        ggplot(df, aes(x=index, y=value))
+        +geom_point()
+        +geom_line()
+        +geom_line(aes(y=recurrence_fit), color='red')
+    )
+}
+
 
 linear_coeffs <- function(seqID){
     linear_model <- readRDS(paste0("./cache/", seqID))$linear_model

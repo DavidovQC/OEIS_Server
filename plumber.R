@@ -1,8 +1,30 @@
 #To do: 
-# Return formulas
-# Implement different kinds of analysis
+
+# Day 1:
+# 1. polynomial of degree n (easy)
+# 2. logarithmic (easy)
+# 3. Power law ax^b (easy) 
+# 4. rsin(\Omega x) + rcos(\Omega x) (hard)
+# 5. Piecewise (medium) 
+# 6. Factorial (medium) 
 
 
+# 9. Polynomial interpolation (hard) 
+# 10. Fourier ? 
+
+# 8. Rational fits P(x)/Q(x) (hard) - x
+# 7. Recurrence fits (?) (Hard) 
+
+# Day 2:
+# Make site beautiful 
+
+# Day 3:
+# Conduct meta analysis of all sequences? 
+# Uploading csv of sequences
+
+# Day 4:
+# Probabilistic dependence
+# Improve Search to not require seqID
 
 
 
@@ -23,6 +45,7 @@ source("algorithms.R")
 library(plumber)
 library(httr)
 library(ggplot2)
+library(pracma)
 
 getwd()
 
@@ -92,11 +115,44 @@ function(seqID){
 function(seqID){
   if(!file.exists(paste0("./cache/", seqID))){
     create_df_and_cache(seqID)
-    print("df created in /setQuadraticModelPNG")
+    print("df created in /getSeqExpModelPNG")
     print(seqID)
   }
 
   p <- draw_graph_with_exp_fit(seqID)
+  print(p)
+}
+
+
+#* Print a picture of the plot of a given sequence with an exponential fit
+#* param seqID:str The sequence ID
+#* @get /getSeqRationalModelPNG
+#* @serializer png
+function(seqID){
+  if(!file.exists(paste0("./cache/", seqID))){
+    create_df_and_cache(seqID)
+    print("df created in /getSeqRationalModelPNG")
+    print(seqID)
+    df <- readRDS(paste0("./cache/", seqID))$df
+  }
+
+  p <- draw_graph_with_rational_fit(seqID)
+  print(p)
+}
+
+#* Print a picture of the plot of a given sequence with an exponential fit
+#* param seqID:str The sequence ID
+#* @get /getSeqRecurrenceModelPNG
+#* @serializer png
+function(seqID){
+  if(!file.exists(paste0("./cache/", seqID))){
+    create_df_and_cache(seqID)
+    print("df created in /getSeqRecurrenceModelPNG")
+    print(seqID)
+    df <- readRDS(paste0("./cache/", seqID))$df
+  }
+
+  p <- draw_graph_with_recurrence_fit(seqID)
   print(p)
 }
 
