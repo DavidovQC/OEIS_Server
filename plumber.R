@@ -1,22 +1,23 @@
 #To do: 
 
-# Day 1:
-# 1. polynomial of degree n (easy)
-# 2. logarithmic (easy)
-# 3. Power law ax^b (easy) 
-# 4. rsin(\Omega x) + rcos(\Omega x) (hard)
-# 5. Piecewise (medium) 
-# 6. Factorial (medium) 
-
-
-# 9. Polynomial interpolation (hard) 
-# 10. Fourier ? 
-
+# Done:
 # 8. Rational fits P(x)/Q(x) (hard) - x
 # 7. Recurrence fits (?) (Hard) 
+# 2. logarithmic (easy)
 
-# Day 2:
-# Make site beautiful 
+# Day 1:
+# 1. polynomial of degree n (easy)
+# 3. Power law ax^b (easy) 
+# 5. Piecewise (medium) 
+# 6. Factorial (medium) (maybe)
+# 9. Polynomial interpolation (hard) 
+# 4. rsin(\Omega x) + rcos(\Omega x) (hard) (maybe)
+# 10. Discrete Fourier ? 
+# 11. Compute Continued fraction (?)
+
+
+# Day 3
+# Set title and set formulas for each graph
 
 # Day 3:
 # Conduct meta analysis of all sequences? 
@@ -25,8 +26,6 @@
 # Day 4:
 # Probabilistic dependence
 # Improve Search to not require seqID
-
-
 
 
 
@@ -41,6 +40,7 @@
 
 # api.R
 source("algorithms.R")
+source("caching.R")
 
 library(plumber)
 library(httr)
@@ -142,6 +142,26 @@ function(seqID){
 
 #* Print a picture of the plot of a given sequence with an exponential fit
 #* param seqID:str The sequence ID
+#* @get /getSeqLogModelPNG/<seqID>
+#* @serializer png
+function(seqID){
+  if(!file.exists(paste0("./cache/", seqID))){
+    create_df_and_cache(seqID)
+    print("df created in /getSeqRecurrenceModelPNG")
+    print(seqID)
+    df <- readRDS(paste0("./cache/", seqID))$df
+  }
+
+  p <- draw_graph_with_log_fit(seqID)
+  print(p)
+}
+
+
+
+
+
+#* Print a picture of the plot of a given sequence with an exponential fit
+#* param seqID:str The sequence ID
 #* @get /getSeqRecurrenceModelPNG
 #* @serializer png
 function(seqID){
@@ -192,6 +212,7 @@ function(seqID){
 
   return(exp_coeffs(seqID))
 }
+
 
 
 

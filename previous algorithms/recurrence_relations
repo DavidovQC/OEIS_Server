@@ -1,37 +1,29 @@
+#     k <- 2
+#     E <- embed(df$value, k + 1)
+#     print(E)
 
+#     df_rec <- as.data.frame(E)
+#     colnames(df_rec) <- c("y", paste0("lag", 1:k))
+#     rec_model <- lm(y ~ . -1, data = df_rec)
+#     rec_coeffs <- coefficients(rec_model)
+#     print(df$value[1:10])
+#     print(rec_coeffs)
 
-# /k <- 2
-#     scale_y <- max(abs(df$value))
-#     X <- embed(df$value /scale_y, k+1)[, 2:(k+1)]
-#     print(X)
-#     print("t(X) * X ==========")
-#     print(t(X) %*% X)
-#     print(det(t(X) %*% X))
-
-#         #       [,1] [,2] [,3]
-#         # [1,]    2    1    1
-#         # [2,]    3    2    1
-#         # [3,]    5    3    2
-#     y <- embed(df$value / scale_y, k+1)[, 1]
-
-    
-    
-#     #idea : X * [c1, c2] ~ y
-#     rec_coeffs <- solve(t(X) %*% X, t(X) %*% y)
-    
-
-#     recurrence_function <- function(n){
-#         a <- df$value[1:k]
-#         if(n < k){
-#             return(a[n])
+#     rec_function <- function(n){
+#         values <- df$value[1:k]
+#         if(n <= k){
+#             return(values[n])
 #         }
 
-#         for(i in (k+1) : n){
-#             val <- sum(rev(a[(i-k):(i-1)]) * rec_coeffs)
-#             a <- c(a, val)
+#         for(i in (k+1):n){
+#             # print("values:")
+#             # print(values[(i - k):(i-1)])
+#             # print("coeffs:")
+#             # print(rev(rec_coeffs))
+#             val <- sum(values[(i - k):(i-1)] * rev(rec_coeffs))
+#             values <- c(values, val)
 #         }
 
-#         return(a[n])
-#     }
+#         print(values)
 
-#     df$recurrence_fit <- recurrence_function(df$index)
+#         return(values[n])

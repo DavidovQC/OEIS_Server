@@ -1,6 +1,7 @@
 library(ggplot2)
 library(pracma)
 
+# source("caching.R")
 
 create_df_and_cache <- function(seqID){
     length <- 100
@@ -27,7 +28,7 @@ analyze <- function(df){
     quadratic_model <- lm(value~index + I(index^2), data = df)
     df$quadratic_fit <- predict(quadratic_model)
 
-    #rational fit
+    #-----------------------------------rational fit-----------------------------------
 
     rational_poly <- rationalfit(df$index, df$value, 3, 3)
     rational_func <- function(x) {
@@ -42,7 +43,8 @@ analyze <- function(df){
         warning("Non-negligible imaginary components detected in fit.")
     }
 
-    # exponential fit - choose only values which are > 0.
+    # -----------------------------------exponential fit-----------------------------------
+    #choose only values which are > 0.
     # Notes: For values that oscilate from positive to negative
     # this will show as a "spiked" exponential - see A000009
     df_pos <- df[df$value > 0,  ]
@@ -54,13 +56,25 @@ analyze <- function(df){
     df$exp_fit <- 0
     df$exp_fit[df$value > 0] <- a * exp(b * df$index[df$value > 0])
 
-    #recurrence fit
+
+    # -----------------------------------logarithmic fit-----------------------------------
+    df_ind_pos <- df[df$index > 0, ]
+    log_model <- lm(value ~ log(index), data=df_ind_pos)
+    df$log_fit <- 0
+    df$log_fit[df$index > 0] <- predict(log_model, newdata = df[df$index > 0, ])
+
+
+    #-----------------------------------recurrence fit-----------------------------------
+    #To do: return iff non-degenerate case
+    #(e.g, A000003 where first two elts are equal)
+    #(e.g, A000007, 1, 0, 0, 0, 0, 0....)
+    #(in such cases set c1 = 0, c2 =0)
     k <- 2
     E <- embed(df$value, k + 1)
 
     coeffs_rec <- solve(E[1:2, 2:3], E[1:2, 1])
     names(coeffs_rec) <- c("c1","c2")
-    print(coeffs_rec)
+    
     
     #returns n-1th value
     recurrence_function_pre <- function(n){
@@ -80,16 +94,12 @@ analyze <- function(df){
 
     #true recurrence function
     recurrence_function <- function(n){
-        recurrence_function_pre(n+1)
+        recurrence_function_pre(n + 1)
     }
 
-    df$recurrence_fit <- recurrence_function(df$index)
-
-   
+    df$recurrence_fit <- sapply(df$index, recurrence_function)
 
 
-
-    
 
     return(
         list(
@@ -97,7 +107,8 @@ analyze <- function(df){
             linear_model = linear_model, 
             quadratic_model = quadratic_model, 
             exp_model = exp_model,
-            rational_model = rational_poly
+            rational_model = rational_poly,
+            log_model = log_model
         )
     )
 }
@@ -161,6 +172,17 @@ draw_graph_with_recurrence_fit <- function(seqID){
         +geom_line()
         +geom_line(aes(y=recurrence_fit), color='red')
     )
+}
+
+draw_graph_with_log_fit <- function(seqID){
+    df <- readRDS(paste0("./cache/", seqID))$df
+
+    return(
+        ggplot(df, aes(x=index, y=value))
+        +geom_point()
+        +geom_line()
+        +geom_line(aes(y=log_fit), color='red')
+    ) 
 }
 
 
