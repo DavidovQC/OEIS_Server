@@ -48,16 +48,23 @@ analyze <- function(df){
     # Notes: For values that oscilate from positive to negative
     # this will show as a "spiked" exponential - see A000009
     df_pos <- df[df$value > 0,  ]
-    exp_model <- lm(log(value) ~ index, data=df_pos)
 
-    log_a <- coef(exp_model)[1]
-    b <- coef(exp_model)[2]
-    a <- exp(log_a)
-    df$exp_fit <- 0
-    df$exp_fit[df$value > 0] <- a * exp(b * df$index[df$value > 0])
+    if(nrow(df_pos) > 1) {
+        exp_model <- lm(log(value) ~ index, data=df_pos)
+
+        log_a <- coef(exp_model)[1]
+        b <- coef(exp_model)[2]
+        a <- exp(log_a)
+        df$exp_fit <- 0
+        df$exp_fit[df$value > 0] <- a * exp(b * df$index[df$value > 0])
+    } else {
+        exp_model <- NULL
+        df$exp_fit <- 0
+    }
 
 
     # -----------------------------------logarithmic fit-----------------------------------
+    print("log called")
     df_ind_pos <- df[df$index > 0, ]
     log_model <- lm(value ~ log(index), data=df_ind_pos)
     df$log_fit <- 0
@@ -69,12 +76,29 @@ analyze <- function(df){
     #(e.g, A000003 where first two elts are equal)
     #(e.g, A000007, 1, 0, 0, 0, 0, 0....)
     #(in such cases set c1 = 0, c2 =0)
+
+
+
+    # k <- 2
+    # E <- embed(df$value, k + 1)
+
+    # coeffs_rec <- solve(E[1:2, 2:3], E[1:2, 1])
+    # names(coeffs_rec) <- c("c1","c2")
+    
     k <- 2
     E <- embed(df$value, k + 1)
 
-    coeffs_rec <- solve(E[1:2, 2:3], E[1:2, 1])
-    names(coeffs_rec) <- c("c1","c2")
-    
+    X <- E[1:2, 2:3]
+    y <- E[1:2, 1]
+
+    if (abs(det(X)) < 1e-8) {
+    coeffs_rec <- c(c1 = 0, c2 = 0)
+    } else {
+    coeffs_rec <- solve(X, y)
+    names(coeffs_rec) <- c("c1", "c2")
+    }
+
+
     
     #returns n-1th value
     recurrence_function_pre <- function(n){
@@ -108,7 +132,8 @@ analyze <- function(df){
             quadratic_model = quadratic_model, 
             exp_model = exp_model,
             rational_model = rational_poly,
-            log_model = log_model
+            log_model = log_model,
+            recurrence_function = recurrence_function
         )
     )
 }
@@ -201,7 +226,11 @@ quadratic_coeffs <- function(seqID){
 }
 
 exp_coeffs <- function(seqID){
+    
     exp_model <- readRDS(paste0("./cache/", seqID))$exp_model
+    if(is.null(exp_model)){
+        return(c(0, 0))
+    }
     coeffs <- round(exp_model$coefficients, 2)
 
     return(coeffs)
