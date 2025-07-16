@@ -59,16 +59,43 @@ cors <- function(res) {
   plumber::forward()
 }
 
+for(n in 1:5){
+    seqID <- pad_id(n)
+    url <- paste0("https://oeis.org/search?fmt=json&q=A", seqID)
+    
+    res <- GET(url)
 
-datum_url <- "https://oeis.org/search?fmt=json&q=A000045"
-res <- GET(datum_url)
-
-if(status_code(res) != 200){
-    print("Failed to fetch OEIS data")
-} else {
-  content_data <- content(res, as = "parsed", encoding = "UTF-8")
-  print(content_data[[1]]$name)
+    if(status_code(res) != 200){
+        print("Failed to fetch OEIS data")
+    } else {
+        content_data <- content(res, as = "parsed", encoding = "UTF-8")[[1]]
+        print(content_data$name)
+        result <- list(
+            title = content_data$name,
+            data = content_data$data,
+            seqID = seqID
+        )
+        saveRDS(result, file=paste0("./cache/data/", seqID))
+    }
+    Sys.sleep(0.1)
 }
+
+for(n in 1:5){
+  seqID <- pad_id(n)
+  print(readRDS(paste0("./cache/data/", seqID))$title)
+}
+
+
+# datum_url <- "https://oeis.org/search?fmt=json&q=A000004"
+# res <- GET(datum_url)
+
+# if(status_code(res) != 200){
+#     print("Failed to fetch OEIS data")
+# } else {
+#   content_data <- content(res, as = "parsed", encoding = "UTF-8")[[1]]
+#   print(content_data$name)
+#   print(content_data$data)
+# }
 
 # for(n in 1:5){
 #   seqID <- pad_id(n)

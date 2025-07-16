@@ -249,21 +249,23 @@ createBListURL <- function(seqID){
 }
 
 get_data_and_cache <- function(seqID){
-    url_pre <- "https://oeis.org/search?fmt=json&q=A"
-    url <- paste0(url_pre, seqID)
 
-    tryCatch({
-        oeis_data <- fromJSON(url)
-        title <- oeis_data$results$title
-        nums <- as.integer(strsplit(oeis_data$results$data, ", ")[[1]])
+    datum_url <- "https://oeis.org/search?fmt=json&q=A000004"
+    res <- GET(datum_url)
+
+    if(status_code(res) != 200){
+        print("Failed to fetch OEIS data")
+    } else {
+        content_data <- content(res, as = "parsed", encoding = "UTF-8")[[1]]
+
         result <- list(
-            title=title, 
-            numbers=nums
+            title = content_data$name,
+            data = content_data$data,
+            seqID = seqID
         )
         saveRDS(result, file=paste0("./cache/data/", seqID))
-    }, error = function(e) {
-        warning(paste0("Failed to get data for: ", seqID))
-    })
+    }
+
 }
 
 pad_id <- function(n){
