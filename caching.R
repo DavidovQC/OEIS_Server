@@ -17,5 +17,5 @@ create_df_and_cache <- function(seqID){
 }
 
 cache_result <- function(seqID, result){
-    saveRDS(result, file=paste0("./cache/", seqID))
+    saveRDS(result, file=paste0("./cache/models/", seqID))
 }

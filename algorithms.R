@@ -12,13 +12,11 @@ create_df_and_cache <- function(seqID){
 }
 
 cache_result <- function(seqID, result){
-    saveRDS(result, file=paste0("./cache/", seqID))
+    saveRDS(result, file=paste0("./cache/models", seqID))
 }
 
 
 analyze <- function(df){
-   
-    
     # linear fit
     linear_model <- lm(value~index, data=df)
     df$linear_fit <- predict(linear_model)
@@ -139,7 +137,7 @@ analyze <- function(df){
 }
 
 draw_graph <- function(seqID){
-    df <- readRDS(paste0("./cache/", seqID))$df
+    df <- readRDS(paste0("./cache/models/", seqID))$df
     return(
         ggplot(df, aes(x=index, y=value))
         +geom_point()
@@ -149,7 +147,7 @@ draw_graph <- function(seqID){
 
 
 draw_graph_with_linear_fit <- function(seqID){
-    df <- readRDS(paste0("./cache/", seqID))$df
+    df <- readRDS(paste0("./cache/models/", seqID))$df
     return(
         ggplot(df, aes(x=index, y=value))
         +geom_point()
@@ -159,7 +157,7 @@ draw_graph_with_linear_fit <- function(seqID){
 }
 
 draw_graph_with_quadratic_fit <- function(seqID){
-    df <- readRDS(paste0("./cache/", seqID))$df
+    df <- readRDS(paste0("./cache/models/", seqID))$df
     return(
         ggplot(df, aes(x=index, y=value)) 
         +geom_point()
@@ -169,7 +167,7 @@ draw_graph_with_quadratic_fit <- function(seqID){
 }
 
 draw_graph_with_exp_fit <- function(seqID){
-    df <- readRDS(paste0("./cache/", seqID))$df
+    df <- readRDS(paste0("./cache/models/", seqID))$df
     return(
         ggplot(df, aes(x=index, y=value))
         +geom_point()
@@ -180,7 +178,7 @@ draw_graph_with_exp_fit <- function(seqID){
 }
 
 draw_graph_with_rational_fit <- function(seqID){
-    df <- readRDS(paste0("./cache/", seqID))$df
+    df <- readRDS(paste0("./cache/models/", seqID))$df
     return(
         ggplot(df, aes(x=index, y=value))
         +geom_point()
@@ -190,7 +188,7 @@ draw_graph_with_rational_fit <- function(seqID){
 }
 
 draw_graph_with_recurrence_fit <- function(seqID){
-    df <- readRDS(paste0("./cache/", seqID))$df
+    df <- readRDS(paste0("./cache/models/", seqID))$df
     return(
         ggplot(df, aes(x=index, y=value))
         +geom_point()
@@ -200,7 +198,7 @@ draw_graph_with_recurrence_fit <- function(seqID){
 }
 
 draw_graph_with_log_fit <- function(seqID){
-    df <- readRDS(paste0("./cache/", seqID))$df
+    df <- readRDS(paste0("./cache/models/", seqID))$df
 
     return(
         ggplot(df, aes(x=index, y=value))
@@ -212,28 +210,33 @@ draw_graph_with_log_fit <- function(seqID){
 
 
 linear_coeffs <- function(seqID){
-    linear_model <- readRDS(paste0("./cache/", seqID))$linear_model
+    linear_model <- readRDS(paste0("./cache/models", seqID))$linear_model
     coeffs <- round(linear_model$coefficients, 2)
     
     return(coeffs)
 }
 
 quadratic_coeffs <- function(seqID){
-    quadratic_model <- readRDS(paste0("./cache/", seqID))$quadratic_model
+    quadratic_model <- readRDS(paste0("./cache/models", seqID))$quadratic_model
     coeffs <- round(quadratic_model$coefficients, 2)
     
     return(coeffs)
 }
 
 exp_coeffs <- function(seqID){
-    
-    exp_model <- readRDS(paste0("./cache/", seqID))$exp_model
+    exp_model <- readRDS(paste0("./cache/models", seqID))$exp_model
     if(is.null(exp_model)){
         return(c(0, 0))
     }
     coeffs <- round(exp_model$coefficients, 2)
 
     return(coeffs)
+}
+
+createAListURL <- function(seqID){
+    # example URL: "https://oeis.org/A000045"
+    url <- paste0("https://oeis.org/", seqID)
+    return(url)
 }
 
 
@@ -243,4 +246,26 @@ createBListURL <- function(seqID){
     b_seqID <- paste0("b", seqID)
     url <- paste0("https://oeis.org/", A_seqID, "/", b_seqID, ".txt")
     return(url)
+}
+
+get_data_and_cache <- function(seqID){
+    url_pre <- "https://oeis.org/search?fmt=json&q=A"
+    url <- paste0(url_pre, seqID)
+
+    tryCatch({
+        oeis_data <- fromJSON(url)
+        title <- oeis_data$results$title
+        nums <- as.integer(strsplit(oeis_data$results$data, ", ")[[1]])
+        result <- list(
+            title=title, 
+            numbers=nums
+        )
+        saveRDS(result, file=paste0("./cache/data/", seqID))
+    }, error = function(e) {
+        warning(paste0("Failed to get data for: ", seqID))
+    })
+}
+
+pad_id <- function(n){
+    sprintf("%06d", n)
 }

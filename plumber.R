@@ -38,6 +38,7 @@
 # if(!file.exists(paste0("./cache/", seqID)))
 
 
+
 # api.R
 source("algorithms.R")
 source("caching.R")
@@ -46,6 +47,7 @@ library(plumber)
 library(httr)
 library(ggplot2)
 library(pracma)
+
 
 getwd()
 
@@ -58,17 +60,33 @@ cors <- function(res) {
 }
 
 
+datum_url <- "https://oeis.org/search?fmt=json&q=A000045"
+res <- GET(datum_url)
+
+if(status_code(res) != 200){
+    print("Failed to fetch OEIS data")
+} else {
+  content_data <- content(res, as = "parsed", encoding = "UTF-8")
+  print(content_data[[1]]$name)
+}
+
+# for(n in 1:5){
+#   seqID <- pad_id(n)
+#   get_data_and_cache(seqID)
+#   Sys.sleep(0.1)
+# }
+
 #* Print a picture of the plot of a given sequence
 #* param seqID:str The sequence ID
 #* @get /getSeqPNG
 #* @serializer png list(width = 800, height = 500)
 function(seqID){
-  if(!file.exists(paste0("./cache/", seqID))){
+  if(!file.exists(paste0("./cache/models/", seqID))){
     create_df_and_cache(seqID)
   }
 
 
-  result <- readRDS(paste0("./cache/", seqID))
+  result <- readRDS(paste0("./cache/models/", seqID))
   p <- draw_graph(seqID)
   print(exp_coeffs(seqID))
   print(p)
@@ -81,7 +99,7 @@ function(seqID){
 #* @get /getSeqLinearModelPNG
 #* @serializer png
 function(seqID){
-  if(!file.exists(paste0("./cache/", seqID))){
+  if(!file.exists(paste0("./cache/models/", seqID))){
     print("df created in /getSeqLinearModelPNG")
     print(seqID)
     create_df_and_cache(seqID)
@@ -97,7 +115,7 @@ function(seqID){
 #* @get /getSeqQuadraticModelPNG
 #* @serializer png
 function(seqID){
-  if(!file.exists(paste0("./cache/", seqID))){
+  if(!file.exists(paste0("./cache/models/", seqID))){
     create_df_and_cache(seqID)
     print("df created in /setQuadraticModelPNG")
     print(seqID)
@@ -113,7 +131,7 @@ function(seqID){
 #* @get /getSeqExpModelPNG
 #* @serializer png
 function(seqID){
-  if(!file.exists(paste0("./cache/", seqID))){
+  if(!file.exists(paste0("./cache/models/", seqID))){
     create_df_and_cache(seqID)
     print("df created in /getSeqExpModelPNG")
     print(seqID)
@@ -129,7 +147,7 @@ function(seqID){
 #* @get /getSeqRationalModelPNG
 #* @serializer png
 function(seqID){
-  if(!file.exists(paste0("./cache/", seqID))){
+  if(!file.exists(paste0("./cache/models/", seqID))){
     create_df_and_cache(seqID)
     print("df created in /getSeqRationalModelPNG")
     print(seqID)
@@ -145,7 +163,7 @@ function(seqID){
 #* @get /getSeqLogModelPNG/<seqID>
 #* @serializer png
 function(seqID){
-  if(!file.exists(paste0("./cache/", seqID))){
+  if(!file.exists(paste0("./cache/models/", seqID))){
     create_df_and_cache(seqID)
     print("df created in /getSeqRecurrenceModelPNG")
     print(seqID)
@@ -165,7 +183,7 @@ function(seqID){
 #* @get /getSeqRecurrenceModelPNG
 #* @serializer png
 function(seqID){
-  if(!file.exists(paste0("./cache/", seqID))){
+  if(!file.exists(paste0("./cache/models/", seqID))){
     create_df_and_cache(seqID)
     print("df created in /getSeqRecurrenceModelPNG")
     print(seqID)
@@ -180,7 +198,7 @@ function(seqID){
 #* param seqID:str The sequence ID
 #* @get /getLinearCoeffs
 function(seqID){
-  if(!file.exists(paste0("./cache", seqID))){
+  if(!file.exists(paste0("./cache/models", seqID))){
     create_df_and_cache(seqID)
     print("df created in /getLinearCoeffs")
   }
@@ -193,7 +211,7 @@ function(seqID){
 #* param seqID:str The sequence ID
 #* @get /getQuadraticCoeffs
 function(seqID){
-  if(!file.exists(paste0("./cache", seqID))){
+  if(!file.exists(paste0("./cache/models", seqID))){
     create_df_and_cache(seqID)
     print("df created in /getQuadraticCoeffs")
   }
@@ -205,7 +223,7 @@ function(seqID){
 #* param seqID:str The sequence ID
 #* @get /getExponentialCoeffs
 function(seqID){
-  if(!file.exists(paste0("./cache", seqID))){
+  if(!file.exists(paste0("./cache/models", seqID))){
     create_df_and_cache(seqID)
     print("df created in /getExponentialCoeffs")
   }
