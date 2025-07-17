@@ -59,7 +59,9 @@ cors <- function(res) {
   plumber::forward()
 }
 
-for(n in 1:5){
+lim <- 25
+
+for(n in 1:lim){
     seqID <- pad_id(n)
     url <- paste0("https://oeis.org/search?fmt=json&q=A", seqID)
     
@@ -80,28 +82,30 @@ for(n in 1:5){
     Sys.sleep(0.1)
 }
 
-for(n in 1:5){
-  seqID <- pad_id(n)
-  print(readRDS(paste0("./cache/data/", seqID))$title)
+# for(n in 1:lim){
+#   seqID <- pad_id(n)
+#   print(readRDS(paste0("./cache/data/", seqID))$title)
+# }
+
+#* Return the data of all sequences from 1 to lim
+#* @get /getAllSequenceData
+function(){
+  all_data <- list()
+
+  for(n in 1:lim){
+    seqID <- pad_id(n)
+    file_path <- paste0("./cache/data/", seqID)
+
+    if(verify_data_cached(seqID)){
+      data <- readRDS(file_path)
+      all_data[[n]] <- data
+    }
+  }
+
+  return(all_data)
 }
 
 
-# datum_url <- "https://oeis.org/search?fmt=json&q=A000004"
-# res <- GET(datum_url)
-
-# if(status_code(res) != 200){
-#     print("Failed to fetch OEIS data")
-# } else {
-#   content_data <- content(res, as = "parsed", encoding = "UTF-8")[[1]]
-#   print(content_data$name)
-#   print(content_data$data)
-# }
-
-# for(n in 1:5){
-#   seqID <- pad_id(n)
-#   get_data_and_cache(seqID)
-#   Sys.sleep(0.1)
-# }
 
 #* Print a picture of the plot of a given sequence
 #* param seqID:str The sequence ID
@@ -115,7 +119,7 @@ function(seqID){
 
   result <- readRDS(paste0("./cache/models/", seqID))
   p <- draw_graph(seqID)
-  print(exp_coeffs(seqID))
+
   print(p)
 
 }
@@ -192,7 +196,7 @@ function(seqID){
 function(seqID){
   if(!file.exists(paste0("./cache/models/", seqID))){
     create_df_and_cache(seqID)
-    print("df created in /getSeqRecurrenceModelPNG")
+    print("df created in /getSeqLogModelPNG")
     print(seqID)
     df <- readRDS(paste0("./cache/", seqID))$df
   }
@@ -216,7 +220,6 @@ function(seqID){
     print(seqID)
     df <- readRDS(paste0("./cache/", seqID))$df
   }
-
   p <- draw_graph_with_recurrence_fit(seqID)
   print(p)
 }
@@ -225,7 +228,7 @@ function(seqID){
 #* param seqID:str The sequence ID
 #* @get /getLinearCoeffs
 function(seqID){
-  if(!file.exists(paste0("./cache/models", seqID))){
+  if(!file.exists(paste0("./cache/models/", seqID))){
     create_df_and_cache(seqID)
     print("df created in /getLinearCoeffs")
   }
@@ -238,7 +241,7 @@ function(seqID){
 #* param seqID:str The sequence ID
 #* @get /getQuadraticCoeffs
 function(seqID){
-  if(!file.exists(paste0("./cache/models", seqID))){
+  if(!file.exists(paste0("./cache/models/", seqID))){
     create_df_and_cache(seqID)
     print("df created in /getQuadraticCoeffs")
   }
@@ -246,11 +249,24 @@ function(seqID){
   return(quadratic_coeffs(seqID))
 }
 
-#* Return an object with a, b, c, ax^2+bx+c is the best fit quadratic for SeqID
+#* Return an object with a, b, c, d, e, f such that y ~ (ax^2+bx+c)/(dx^2+ex+f)
+#* param seqID:str The sequence ID
+#* @get /getRationalCoeffs
+function(seqID){
+  if(!file.exists(paste0("./cache/models/", seqID))){
+    create_df_and_cache(seqID)
+    print("df created in /getQuadraticCoeffs")
+  }
+
+  return(rational_coeffs(seqID))
+}
+
+
+#* Return an object with (a,b) such that y ~ ae^b
 #* param seqID:str The sequence ID
 #* @get /getExponentialCoeffs
 function(seqID){
-  if(!file.exists(paste0("./cache/models", seqID))){
+  if(!file.exists(paste0("./cache/models/", seqID))){
     create_df_and_cache(seqID)
     print("df created in /getExponentialCoeffs")
   }
@@ -258,22 +274,51 @@ function(seqID){
   return(exp_coeffs(seqID))
 }
 
+#* Return an object with (a,b) such that y ~ ae^b
+#* param seqID:str The sequence ID
+#* @get /getLogarithmicCoeffs
+function(seqID){
+  if(!file.exists(paste0("./cache/models/", seqID))){
+    create_df_and_cache(seqID)
+    print("df created in /getLogarithmicCoeffs")
+  }
 
+  return(logarithmicCoeffs(seqID))
+}
 
+#* Return an object with (a,b) x_n = ax_n-1 + bx_n-2
+#* param seqID:str The sequence ID
+#* @get /getRecursiveCoeffs
+function(seqID){
+  if(!file.exists(paste0("./cache/models/", seqID))){
+    create_df_and_cache(seqID)
+    print("df created in /getRecursiveCoeffs")
+  }
 
+  df <- readRDS(paste0("./cache/models/", seqID))$df
+ 
+  k <- 2
+  E <- embed(df$value, k + 1)
 
+  X <- E[1:2, 2:3]
+  y <- E[1:2, 1]
 
+  if (abs(det(X)) < 1e-8) {
+    coeffs_rec <- c(0, 0)
+    names(coeffs_rec) <- c("c1", "c2")
+  } else {
+    coeffs_rec <- solve(X, y)
+    names(coeffs_rec) <- c("c1", "c2")
+  }
 
-
-
-
-
-
-
-
-
-
-
+  recursive_coeff1 <- coeffs_rec["c1"]
+  recursive_coeff2 <- coeffs_rec["c2"]
+  print(recursive_coeff1)
+  print(recursive_coeff2)
+  print(coeffs_rec)
+  
+  return(coeffs_rec)
+}
 
 
 #* Return Hello World
@@ -306,10 +351,8 @@ function(seqID){
   content_data <- content(res, as="parsed", encoding="UTF-8")
   arr_string <- content_data[[1]]$data
   arr_num <- as.numeric(strsplit(arr_string, ",")[[1]])
-  print(arr_num)
   s <- "1,2,3,6"
   s_num <- as.numeric((strsplit(s, ",")[[1]]))
-  print(s_num[4])
   return(arr_num);
 }
 
@@ -332,7 +375,5 @@ function(seqID){
   index_vector <- as.vector(index)
   num_vector <- as.vector(nums)
 
-  print(index_vector)
-  print(num_vector)
   return(num_vector[29])
 }

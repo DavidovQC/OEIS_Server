@@ -12,7 +12,7 @@ create_df_and_cache <- function(seqID){
 }
 
 cache_result <- function(seqID, result){
-    saveRDS(result, file=paste0("./cache/models", seqID))
+    saveRDS(result, file=paste0("./cache/models/", seqID))
 }
 
 
@@ -39,6 +39,7 @@ analyze <- function(df){
         df$rational_fit <- Re(rational_func(df$index))
     } else {
         warning("Non-negligible imaginary components detected in fit.")
+        df$rational_fit <- NULL
     }
 
     # -----------------------------------exponential fit-----------------------------------
@@ -62,7 +63,7 @@ analyze <- function(df){
 
 
     # -----------------------------------logarithmic fit-----------------------------------
-    print("log called")
+
     df_ind_pos <- df[df$index > 0, ]
     log_model <- lm(value ~ log(index), data=df_ind_pos)
     df$log_fit <- 0
@@ -75,13 +76,6 @@ analyze <- function(df){
     #(e.g, A000007, 1, 0, 0, 0, 0, 0....)
     #(in such cases set c1 = 0, c2 =0)
 
-
-
-    # k <- 2
-    # E <- embed(df$value, k + 1)
-
-    # coeffs_rec <- solve(E[1:2, 2:3], E[1:2, 1])
-    # names(coeffs_rec) <- c("c1","c2")
     
     k <- 2
     E <- embed(df$value, k + 1)
@@ -89,15 +83,17 @@ analyze <- function(df){
     X <- E[1:2, 2:3]
     y <- E[1:2, 1]
 
+    coeffs_rec <- c(0, 1)
+    names(coeffs_rec) <- c("c1", "c2")
     if (abs(det(X)) < 1e-8) {
-    coeffs_rec <- c(c1 = 0, c2 = 0)
+    coeffs_rec <- c(0, 0)
     } else {
     coeffs_rec <- solve(X, y)
-    names(coeffs_rec) <- c("c1", "c2")
     }
 
-
-    
+    recursive_coeff1 <- coeffs_rec
+    recursive_coeff2 <- recursive_coeff1
+        
     #returns n-1th value
     recurrence_function_pre <- function(n){
         values <- df$value[1:k]
@@ -131,7 +127,9 @@ analyze <- function(df){
             exp_model = exp_model,
             rational_model = rational_poly,
             log_model = log_model,
-            recurrence_function = recurrence_function
+            recurrence_function = recurrence_function,
+            recursive_coeff1 = recursive_coeff1,
+            recursive_coeff2 = recursive_coeff2
         )
     )
 }
@@ -179,11 +177,17 @@ draw_graph_with_exp_fit <- function(seqID){
 
 draw_graph_with_rational_fit <- function(seqID){
     df <- readRDS(paste0("./cache/models/", seqID))$df
+    if(is.null(df$rational_fit)){
+        return(ggplot(df, aes(x=index, y=value))+ 
+        geom_point()+
+        geom_line()+
+        geom_line(aes(y=0), color='red'))
+    }
     return(
-        ggplot(df, aes(x=index, y=value))
-        +geom_point()
-        +geom_line()
-        +geom_line(aes(y=rational_fit), color='red')
+        ggplot(df, aes(x=index, y=value))+
+        geom_point()+
+        geom_line()+
+        geom_line(aes(y=rational_fit), color='red')
     )
 }
 
@@ -210,27 +214,50 @@ draw_graph_with_log_fit <- function(seqID){
 
 
 linear_coeffs <- function(seqID){
-    linear_model <- readRDS(paste0("./cache/models", seqID))$linear_model
+    linear_model <- readRDS(paste0("./cache/models/", seqID))$linear_model
     coeffs <- round(linear_model$coefficients, 2)
+    coeffs_str <- format(coeffs, scientific = TRUE)
+
     
-    return(coeffs)
+    return(coeffs_str)
 }
 
 quadratic_coeffs <- function(seqID){
-    quadratic_model <- readRDS(paste0("./cache/models", seqID))$quadratic_model
+    quadratic_model <- readRDS(paste0("./cache/models/", seqID))$quadratic_model
     coeffs <- round(quadratic_model$coefficients, 2)
     
     return(coeffs)
 }
 
+rational_coeffs <- function(seqID){
+    rational_model <- readRDS(paste0("./cache/models/", seqID))$rational_model
+    if(is.null(rational_model)){
+        return(list(numerator = {0}))
+    }
+ 
+    return(list(
+        numerator = Re(round(rational_model$p1, 2)),
+        denominator = Re(round(rational_model$p2, 2))
+    ))
+}
+
 exp_coeffs <- function(seqID){
-    exp_model <- readRDS(paste0("./cache/models", seqID))$exp_model
+    exp_model <- readRDS(paste0("./cache/models/", seqID))$exp_model
     if(is.null(exp_model)){
         return(c(0, 0))
     }
     coeffs <- round(exp_model$coefficients, 2)
 
     return(coeffs)
+}
+
+logarithmicCoeffs <- function(seqID){
+    log_model <- readRDS(paste0("./cache/models/", seqID))$log_model
+    coeffs <- round(log_model$coefficients, 2)
+}
+
+recursive_coeffs <- function(seqID){
+    
 }
 
 createAListURL <- function(seqID){
@@ -270,4 +297,20 @@ get_data_and_cache <- function(seqID){
 
 pad_id <- function(n){
     sprintf("%06d", n)
+}
+
+verify_data_cached <- function(seqID){
+    if(file.exists(paste0("./cache/data/", seqID))){
+        return(TRUE)
+    } else{
+        return(FALSE)
+    }    
+}
+
+verify_model_cached <- function(seqID){
+    if(file.exists(paste0("./cache/models/", seqID))){
+        return(TRUE)
+    } else{
+        return(FALSE)
+    }   
 }
