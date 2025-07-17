@@ -59,7 +59,7 @@ cors <- function(res) {
   plumber::forward()
 }
 
-lim <- 25
+lim <- 50
 
 for(n in 1:lim){
     seqID <- pad_id(n)
@@ -78,8 +78,11 @@ for(n in 1:lim){
             seqID = seqID
         )
         saveRDS(result, file=paste0("./cache/data/", seqID))
+        create_df_and_cache(seqID)
     }
     Sys.sleep(0.1)
+
+    
 }
 
 # for(n in 1:lim){
