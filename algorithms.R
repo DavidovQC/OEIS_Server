@@ -314,3 +314,11 @@ verify_model_cached <- function(seqID){
         return(FALSE)
     }   
 }
+
+check_valid_id <- function(seqID, lim){
+    if(grepl("^\\d{6}$", seqID) && as.numeric(seqID) <= lim){
+        return(TRUE)
+    } else {
+        return(FALSE)
+    }
+}

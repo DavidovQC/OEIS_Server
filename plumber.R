@@ -1,44 +1,3 @@
-#To do: 
-
-# Done:
-# 8. Rational fits P(x)/Q(x) (hard) - x
-# 7. Recurrence fits (?) (Hard) 
-# 2. logarithmic (easy)
-
-# Day 1:
-# 1. polynomial of degree n (easy)
-# 3. Power law ax^b (easy) 
-# 5. Piecewise (medium) 
-# 6. Factorial (medium) (maybe)
-# 9. Polynomial interpolation (hard) 
-# 4. rsin(\Omega x) + rcos(\Omega x) (hard) (maybe)
-# 10. Discrete Fourier ? 
-# 11. Compute Continued fraction (?)
-
-
-# Day 3
-# Set title and set formulas for each graph
-
-# Day 3:
-# Conduct meta analysis of all sequences? 
-# Uploading csv of sequences
-
-# Day 4:
-# Probabilistic dependence
-# Improve Search to not require seqID
-
-
-
-# Fun note: the cache wasn't working and each function was caching 
-#the sequence over and over again 
-# - I asked chatGPT what the problem was and it recommended I
-# Implement a "lock file" (???) to "ensure single creation" - 
-# the actual problem was I was doing 
-#if(!file.exists(paste0("./cache", seqID))) instead of 
-# if(!file.exists(paste0("./cache/", seqID)))
-
-
-
 # api.R
 source("algorithms.R")
 source("caching.R")
@@ -65,12 +24,12 @@ for(n in 1:lim){
     seqID <- pad_id(n)
     url <- paste0("https://oeis.org/search?fmt=json&q=A", seqID)
     
-    res <- GET(url)
+    pre_data <- GET(url)
 
-    if(status_code(res) != 200){
+    if(status_code(pre_data) != 200){
         print("Failed to fetch OEIS data")
     } else {
-        content_data <- content(res, as = "parsed", encoding = "UTF-8")[[1]]
+        content_data <- content(pre_data, as = "parsed", encoding = "UTF-8")[[1]]
         print(content_data$name)
         result <- list(
             title = content_data$name,
@@ -81,14 +40,7 @@ for(n in 1:lim){
         create_df_and_cache(seqID)
     }
     Sys.sleep(0.1)
-
-    
 }
-
-# for(n in 1:lim){
-#   seqID <- pad_id(n)
-#   print(readRDS(paste0("./cache/data/", seqID))$title)
-# }
 
 #* Return the data of all sequences from 1 to lim
 #* @get /getAllSequenceData
@@ -109,16 +61,19 @@ function(){
 }
 
 
-
 #* Print a picture of the plot of a given sequence
 #* param seqID:str The sequence ID
 #* @get /getSeqPNG
 #* @serializer png list(width = 800, height = 500)
-function(seqID){
-  if(!file.exists(paste0("./cache/models/", seqID))){
-    create_df_and_cache(seqID)
+function(res, seqID){
+  if(!check_valid_id(seqID, lim)){
+    res$status <- 400
+    return()
   }
 
+  else if(!file.exists(paste0("./cache/models/", seqID))){
+    create_df_and_cache(seqID)
+  }
 
   result <- readRDS(paste0("./cache/models/", seqID))
   p <- draw_graph(seqID)
@@ -132,11 +87,16 @@ function(seqID){
 #* param seqID:str The sequence ID
 #* @get /getSeqLinearModelPNG
 #* @serializer png
-function(seqID){
+function(res, seqID){
+   if(!check_valid_id(seqID, lim)){
+    res$status <- 400
+    return()
+  }
+
   if(!file.exists(paste0("./cache/models/", seqID))){
     print("df created in /getSeqLinearModelPNG")
-    print(seqID)
     create_df_and_cache(seqID)
+    res$status <- 201
   }
 
   p <- draw_graph_with_linear_fit(seqID)
@@ -148,11 +108,17 @@ function(seqID){
 #* param seqID:str The sequence ID
 #* @get /getSeqQuadraticModelPNG
 #* @serializer png
-function(seqID){
+function(res, seqID){
+  if(!check_valid_id(seqID, lim)){
+    res$status <- 400
+    return()
+  }
+
   if(!file.exists(paste0("./cache/models/", seqID))){
     create_df_and_cache(seqID)
     print("df created in /setQuadraticModelPNG")
     print(seqID)
+    res$status <- 201
   }
 
   p <- draw_graph_with_quadratic_fit(seqID)
@@ -164,11 +130,17 @@ function(seqID){
 #* param seqID:str The sequence ID
 #* @get /getSeqExpModelPNG
 #* @serializer png
-function(seqID){
+function(res, seqID){
+  if(!check_valid_id(seqID, lim)){
+    res$status <- 400
+    return()
+  }
+
   if(!file.exists(paste0("./cache/models/", seqID))){
     create_df_and_cache(seqID)
     print("df created in /getSeqExpModelPNG")
     print(seqID)
+    res$status <- 201
   }
 
   p <- draw_graph_with_exp_fit(seqID)
@@ -180,11 +152,17 @@ function(seqID){
 #* param seqID:str The sequence ID
 #* @get /getSeqRationalModelPNG
 #* @serializer png
-function(seqID){
+function(res, seqID){
+  if(!check_valid_id(seqID, lim)){
+    res$status <- 400
+    return()
+  }
+
   if(!file.exists(paste0("./cache/models/", seqID))){
     create_df_and_cache(seqID)
     print("df created in /getSeqRationalModelPNG")
     print(seqID)
+    res$status <- 201
     df <- readRDS(paste0("./cache/", seqID))$df
   }
 
@@ -196,11 +174,17 @@ function(seqID){
 #* param seqID:str The sequence ID
 #* @get /getSeqLogModelPNG/<seqID>
 #* @serializer png
-function(seqID){
+function(res, seqID){
+  if(!check_valid_id(seqID, lim)){
+    res$status <- 400
+    return()
+  }
+
   if(!file.exists(paste0("./cache/models/", seqID))){
     create_df_and_cache(seqID)
     print("df created in /getSeqLogModelPNG")
     print(seqID)
+    res$status <- 201
     df <- readRDS(paste0("./cache/", seqID))$df
   }
 
@@ -216,11 +200,17 @@ function(seqID){
 #* param seqID:str The sequence ID
 #* @get /getSeqRecurrenceModelPNG
 #* @serializer png
-function(seqID){
+function(res, seqID){
+  if(!check_valid_id(seqID, lim)){
+    res$status <- 400
+    return()
+  }
+
   if(!file.exists(paste0("./cache/models/", seqID))){
     create_df_and_cache(seqID)
     print("df created in /getSeqRecurrenceModelPNG")
     print(seqID)
+    res$status <- 201
     df <- readRDS(paste0("./cache/", seqID))$df
   }
   p <- draw_graph_with_recurrence_fit(seqID)
@@ -230,9 +220,15 @@ function(seqID){
 #* Return a json object with m, b the slope and y-intercept of the linear fit
 #* param seqID:str The sequence ID
 #* @get /getLinearCoeffs
-function(seqID){
+function(res, seqID){
+  if(!check_valid_id(seqID, lim)){
+    res$status <- 400
+    return()
+  }
+
   if(!file.exists(paste0("./cache/models/", seqID))){
     create_df_and_cache(seqID)
+    res$status <- 201
     print("df created in /getLinearCoeffs")
   }
 
@@ -243,9 +239,15 @@ function(seqID){
 #* Return an object with a, b, c, ax^2+bx+c is the best fit quadratic for SeqID
 #* param seqID:str The sequence ID
 #* @get /getQuadraticCoeffs
-function(seqID){
+function(res, seqID){
+  if(!check_valid_id(seqID, lim)){
+    res$status <- 400
+    return()
+  }
+
   if(!file.exists(paste0("./cache/models/", seqID))){
     create_df_and_cache(seqID)
+    res$status <- 201
     print("df created in /getQuadraticCoeffs")
   }
 
@@ -255,10 +257,17 @@ function(seqID){
 #* Return an object with a, b, c, d, e, f such that y ~ (ax^2+bx+c)/(dx^2+ex+f)
 #* param seqID:str The sequence ID
 #* @get /getRationalCoeffs
-function(seqID){
+function(res, seqID){
+  if(!check_valid_id(seqID, lim)){
+    res$status <- 400
+    
+    return()
+  }
+
   if(!file.exists(paste0("./cache/models/", seqID))){
     create_df_and_cache(seqID)
     print("df created in /getQuadraticCoeffs")
+    res$status <- 201
   }
 
   return(rational_coeffs(seqID))
@@ -268,10 +277,16 @@ function(seqID){
 #* Return an object with (a,b) such that y ~ ae^b
 #* param seqID:str The sequence ID
 #* @get /getExponentialCoeffs
-function(seqID){
+function(res, seqID){
+  if(!check_valid_id(seqID, lim)){
+    res$status <- 400
+    return()
+  }
+
   if(!file.exists(paste0("./cache/models/", seqID))){
     create_df_and_cache(seqID)
     print("df created in /getExponentialCoeffs")
+    res$status <- 201
   }
 
   return(exp_coeffs(seqID))
@@ -280,10 +295,16 @@ function(seqID){
 #* Return an object with (a,b) such that y ~ ae^b
 #* param seqID:str The sequence ID
 #* @get /getLogarithmicCoeffs
-function(seqID){
+function(res, seqID){
+  if(!check_valid_id(seqID, lim)){
+    res$status <- 400
+    return()
+  }
+
   if(!file.exists(paste0("./cache/models/", seqID))){
     create_df_and_cache(seqID)
     print("df created in /getLogarithmicCoeffs")
+    res$status <- 201
   }
 
   return(logarithmicCoeffs(seqID))
@@ -292,10 +313,16 @@ function(seqID){
 #* Return an object with (a,b) x_n = ax_n-1 + bx_n-2
 #* param seqID:str The sequence ID
 #* @get /getRecursiveCoeffs
-function(seqID){
+function(res, seqID){
+  if(!check_valid_id(seqID, lim)){
+    res$status <- 400
+    return()
+  }
+
   if(!file.exists(paste0("./cache/models/", seqID))){
     create_df_and_cache(seqID)
     print("df created in /getRecursiveCoeffs")
+    res$status <- 201
   }
 
   df <- readRDS(paste0("./cache/models/", seqID))$df
@@ -341,17 +368,22 @@ function(msg="") {
 #* Get the elements of a sequence
 #* param seqID:str The sequence ID.
 #* @get /seq
-function(seqID){
+function(res, seqID){
+  if(!check_valid_id(seqID, lim)){
+    res$status <- 400
+    return()
+  }
+
   A_seqID <- paste0("A", seqID)
   url <- paste0("https://oeis.org/search?fmt=json&q=", seqID)
   print(url)
-  res <- GET(url)
+  pre_data <- GET(url)
   
-  if(status_code(res) !=200){
+  if(status_code(pre_data) !=200){
     return("Error")
   }
 
-  content_data <- content(res, as="parsed", encoding="UTF-8")
+  content_data <- content(pre_data, as="parsed", encoding="UTF-8")
   arr_string <- content_data[[1]]$data
   arr_num <- as.numeric(strsplit(arr_string, ",")[[1]])
   s <- "1,2,3,6"

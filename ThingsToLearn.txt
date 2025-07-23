@@ -8,3 +8,44 @@ derivation of lienar fit from linear algebra
 derivation of linear fit for quadratic
 
 derivation of exponential fit (did this on paper already)
+
+#To do: 
+
+# Done:
+# 8. Rational fits P(x)/Q(x) (hard) - x
+# 7. Recurrence fits (?) (Hard) 
+# 2. logarithmic (easy)
+
+# Day 1:
+# 1. polynomial of degree n (easy)
+# 3. Power law ax^b (easy) 
+# 5. Piecewise (medium) 
+# 6. Factorial (medium) (maybe)
+# 9. Polynomial interpolation (hard) 
+# 4. rsin(\Omega x) + rcos(\Omega x) (hard) (maybe)
+# 10. Discrete Fourier ? 
+# 11. Compute Continued fraction (?)
+
+
+# Day 3
+# Set title and set formulas for each graph
+
+# Day 3:
+# Conduct meta analysis of all sequences? 
+# Uploading csv of sequences
+
+# Day 4:
+# Probabilistic dependence
+# Improve Search to not require seqID
+
+
+
+# Fun note: the cache wasn't working and each function was caching 
+#the sequence over and over again 
+# - I asked chatGPT what the problem was and it recommended I
+# Implement a "lock file" (???) to "ensure single creation" - 
+# the actual problem was I was doing 
+#if(!file.exists(paste0("./cache", seqID))) instead of 
+# if(!file.exists(paste0("./cache/", seqID)))
+
+
